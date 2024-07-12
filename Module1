@@ -1,0 +1,24 @@
+// C++ code
+//
+
+const int ledPin = 2;  // Pin for the external LED
+const int pirPin = 7;  // Pin for the PIR sensor
+
+void setup() {
+  pinMode(ledPin, OUTPUT);  
+  pinMode(pirPin, INPUT);   
+  Serial.begin(9600);       // Initialize serial communication for debugging
+}
+
+void loop() {
+  int pirState = digitalRead(pirPin); // Read the state of the PIR sensor
+  
+  if (pirState == HIGH) {
+    digitalWrite(ledPin, HIGH); // Turn on the LED if motion is detected
+    Serial.println("Motion detected!"); 
+  } else {
+    digitalWrite(ledPin, LOW);  // Turn off the LED if no motion is detected
+    Serial.println("No motion");
+  
+  delay(1000); 
+}
