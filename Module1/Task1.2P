@@ -1,0 +1,48 @@
+const int MOTION_SENSOR_PIN = 3; // Motion sensor connected to digital pin 5
+const int BUTTON_PIN = 2;       // Button connected to digital pin 2
+const int LED_PIN = 13;
+
+volatile bool motionDetected = false; // Flag to track motion sensor state
+volatile bool buttonPressed = false;  // Flag to track button state
+
+void setup() {
+  pinMode(MOTION_SENSOR_PIN, INPUT);  // Motion sensor pin as input
+  pinMode(BUTTON_PIN, INPUT_PULLUP); // Button pin as input with pull-up resistor
+  pinMode(LED_PIN, OUTPUT);           // LED pin as output
+
+  Serial.begin(9600);  // Start serial communication for debugging
+
+  // Attach interrupts
+  attachInterrupt(digitalPinToInterrupt(MOTION_SENSOR_PIN), motionSensorISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), buttonISR, CHANGE);
+}
+
+void loop() {
+  // Check if motion is detected
+  if (motionDetected) {
+    digitalWrite(LED_PIN, HIGH); // Turn LED on
+    Serial.println("Motion detected, LED is now ON");
+  } 
+  // Check if button is pressed
+  else if (buttonPressed) {
+    digitalWrite(LED_PIN, HIGH); // Turn LED on
+    Serial.println("Button pressed, LED is now ON");
+  } 
+  // If no motion or button is pressed
+  else {
+    digitalWrite(LED_PIN, LOW); // Turn LED off
+    Serial.println("No motion detected and button released, LED is now OFF");
+  }
+
+  delay(100); // Optional delay to slow down the output for readability
+}
+
+// Interrupt Service Routine for motion sensor
+void motionSensorISR() {
+  motionDetected = digitalRead(MOTION_SENSOR_PIN) == HIGH;
+}
+
+// Interrupt Service Routine for button
+void buttonISR() {
+  buttonPressed = digitalRead(BUTTON_PIN) == LOW;
+}
