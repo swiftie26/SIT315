@@ -1,0 +1,96 @@
+const int MOTION_SENSOR_PIN = 5; // Motion sensor connected to digital pin 5
+const int BUTTON_PIN = 2;        // Button connected to digital pin 2
+const int LED_PIN = 13;          // LED connected to digital pin 13
+
+const int ULTRASONIC_TRIG_PIN = 6; // Ultrasonic sensor TRIG pin connected to digital pin 6
+const int ULTRASONIC_ECHO_PIN = 7; // Ultrasonic sensor ECHO pin connected to digital pin 7
+const int BUTTON2_PIN = 3;         // Second button connected to digital pin 3
+const int LED2_PIN = 12;           // Second LED connected to digital pin 12
+
+volatile bool buttonPressed = false;     // Flag to track button state
+volatile bool ultrasonicDetected = false;// Flag to track ultrasonic sensor state
+volatile bool button2Pressed = false;    // Flag to track second button state
+
+void setup() {
+  pinMode(MOTION_SENSOR_PIN, INPUT);  // Motion sensor pin as input
+  pinMode(BUTTON_PIN, INPUT_PULLUP);  // Button pin as input with pull-up resistor
+  pinMode(LED_PIN, OUTPUT);           // LED pin as output
+
+  pinMode(ULTRASONIC_TRIG_PIN, OUTPUT);// Ultrasonic sensor TRIG pin as output
+  pinMode(ULTRASONIC_ECHO_PIN, INPUT); // Ultrasonic sensor ECHO pin as input
+  pinMode(BUTTON2_PIN, INPUT_PULLUP);  // Second button pin as input with pull-up resistor
+  pinMode(LED2_PIN, OUTPUT);           // Second LED pin as output
+
+  Serial.begin(9600);  // Start serial communication for debugging
+
+  // Attach interrupts for buttons
+  attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), buttonISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(BUTTON2_PIN), button2ISR, CHANGE);
+}
+
+void loop() {
+  // Check the motion sensor
+  checkMotionSensor();
+
+  // Check the ultrasonic sensor periodically
+  checkUltrasonicSensor();
+
+  delay(100); // Adjust the delay as needed
+}
+
+// Function to check motion sensor state
+void checkMotionSensor() {
+  bool motionDetected = digitalRead(MOTION_SENSOR_PIN) == HIGH;
+  if (motionDetected) {
+    digitalWrite(LED_PIN, HIGH); // Turn LED on
+    Serial.println("Motion detected, LED is now ON");
+  } else if (!buttonPressed) {
+    digitalWrite(LED_PIN, LOW); // Turn LED off if button is not pressed
+    Serial.println("No motion detected and button released, LED is now OFF");
+  }
+}
+
+// Interrupt Service Routine for button
+void buttonISR() {
+  buttonPressed = digitalRead(BUTTON_PIN) == LOW;
+  if (buttonPressed) {
+    digitalWrite(LED_PIN, HIGH); // Turn LED on
+    Serial.println("Button pressed, LED is now ON");
+  } else {
+    digitalWrite(LED_PIN, LOW); // Turn LED off if motion is not detected
+    Serial.println("Button released, LED is now OFF");
+  }
+}
+
+// Interrupt Service Routine for second button
+void button2ISR() {
+  button2Pressed = digitalRead(BUTTON2_PIN) == LOW;
+  if (button2Pressed) {
+    digitalWrite(LED2_PIN, HIGH); // Turn second LED on
+    Serial.println("Button2 pressed, LED2 is now ON");
+  } else {
+    digitalWrite(LED2_PIN, LOW); // Turn second LED off
+    Serial.println("Button2 released, LED2 is now OFF");
+  }
+}
+
+// Function to check ultrasonic sensor distance
+void checkUltrasonicSensor() {
+  digitalWrite(ULTRASONIC_TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(ULTRASONIC_TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(ULTRASONIC_TRIG_PIN, LOW);
+
+  long duration = pulseIn(ULTRASONIC_ECHO_PIN, HIGH);
+  long distance = duration * 0.034 / 2; // Calculate distance in cm
+
+  ultrasonicDetected = (distance < 50); // Set flag if object is detected within 50 cm
+  if (ultrasonicDetected) {
+    digitalWrite(LED2_PIN, HIGH); // Turn second LED on
+    Serial.println("Object detected within 50 cm, LED2 is now ON");
+  } else {
+    digitalWrite(LED2_PIN, LOW); // Turn second LED off
+    Serial.println("No object detected within 50 cm, LED2 is now OFF");
+  }
+}
