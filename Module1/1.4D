@@ -1,0 +1,115 @@
+const int MOTION_SENSOR_PIN = 5;
+const int BUTTON_PIN = 2;
+const int LED_PIN = 13;
+
+const int BUTTON4_PIN = 0; // Define BUTTON4_PIN
+
+const int ULTRASONIC_TRIG_PIN = 6;
+const int ULTRASONIC_ECHO_PIN = 7;
+const int BUTTON2_PIN = 3;
+const int LED2_PIN = 12;
+
+const int SOIL_MOISTURE_PIN = A1;
+const int MOISTURE_LED_PIN = 11;
+
+volatile bool buttonPressed = false;
+volatile bool button2Pressed = false;
+
+void setup() {
+  pinMode(MOTION_SENSOR_PIN, INPUT);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  pinMode(LED_PIN, OUTPUT);
+
+  pinMode(ULTRASONIC_TRIG_PIN, OUTPUT);
+  pinMode(ULTRASONIC_ECHO_PIN, INPUT);
+  pinMode(BUTTON2_PIN, INPUT_PULLUP);
+  pinMode(LED2_PIN, OUTPUT);
+
+  pinMode(MOISTURE_LED_PIN, OUTPUT);
+  pinMode(BUTTON4_PIN, INPUT_PULLUP); // Set BUTTON4_PIN as input with pullup resistor
+
+  Serial.begin(9600);
+
+  // Configure PCINT for buttons
+  PCICR |= (1 << PCIE2); // Enable pin change interrupt for group 2 (pins 0-7)
+  PCMSK2 |= (1 << PCINT16) | (1 << PCINT18) | (1 << PCINT19) | (1 << PCINT14); // Enable interrupt for pins 0, 2, 3, and 4
+}
+
+void loop() {
+  checkMotionSensor();
+  checkUltrasonicSensor();
+  checkSoilMoisture();
+
+  delay(10); // Reduce delay for more responsive polling
+}
+
+void checkMotionSensor() {
+  bool motionDetected = digitalRead(MOTION_SENSOR_PIN) == HIGH;
+  if (motionDetected) {
+    digitalWrite(LED_PIN, HIGH);
+    Serial.println("Motion detected, LED is now ON");
+  } else if (!buttonPressed) {
+    digitalWrite(LED_PIN, LOW);
+    Serial.println("No motion detected and button released, LED is now OFF");
+  }
+}
+
+void buttonISR() {
+  // Turn on LED when button is pressed
+  digitalWrite(LED_PIN, HIGH);
+  Serial.println("Button pressed, LED is now ON");
+}
+
+void button2ISR() {
+  button2Pressed = digitalRead(BUTTON2_PIN) == LOW;
+  if (button2Pressed) {
+    digitalWrite(LED2_PIN, HIGH);
+    Serial.println("Button2 pressed, LED2 is now ON");
+  } else {
+    digitalWrite(LED2_PIN, LOW);
+    Serial.println("Button2 released, LED2 is now OFF");
+  }
+}
+
+void checkUltrasonicSensor() {
+  digitalWrite(ULTRASONIC_TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(ULTRASONIC_TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(ULTRASONIC_TRIG_PIN, LOW);
+
+  long duration = pulseIn(ULTRASONIC_ECHO_PIN, HIGH);
+  long distance = duration * 0.034 / 2;
+
+  if (distance < 50) {
+    digitalWrite(LED2_PIN, HIGH);
+    Serial.println("Object detected within 50 cm, LED2 is now ON");
+  } else {
+    digitalWrite(LED2_PIN, LOW);
+    Serial.println("No object detected within 50 cm, LED2 is now OFF");
+  }
+}
+
+void checkSoilMoisture() {
+  int moistureValue = analogRead(SOIL_MOISTURE_PIN);
+
+  if (moistureValue < 300) {
+    digitalWrite(MOISTURE_LED_PIN, HIGH);
+    Serial.println("Soil is dry, MOISTURE LED is ON");
+  } else {
+    digitalWrite(MOISTURE_LED_PIN, LOW);
+    Serial.println("Soil is not dry, MOISTURE LED is OFF");
+  }
+}
+
+ISR(PCINT2_vect) {
+  if (digitalRead(BUTTON_PIN) == LOW) {
+    buttonISR();
+  } else if (digitalRead(BUTTON2_PIN) == LOW) {
+    button2ISR();
+  } else if (digitalRead(BUTTON4_PIN) == LOW) {
+    // Turn on MOISTURE_LED_PIN when BUTTON4_PIN is pressed
+    digitalWrite(MOISTURE_LED_PIN, HIGH);
+    Serial.println("BUTTON4_PIN pressed, MOISTURE LED is now ON");
+  }
+}
